@@ -7,30 +7,20 @@ import pandas as pd
 from engine.loader import Criterion
 
 
-def _evaluate_criterion(recipient_row: pd.Series, crit: Criterion) -> bool:
-    """Return True if recipient satisfies the criterion."""
-    attr = crit.attribute
-    if attr not in recipient_row.index:
-        return False  # unknown attribute = not eligible
-
-    raw = str(recipient_row[attr]).strip().lower()
-    val = crit.value.strip().lower()
-
+def _evaluate_criterion_vectorized(recipients: pd.DataFrame, crit: Criterion) -> pd.Series:
+    """Return a boolean Series over all recipients for a single criterion."""
+    if crit.attribute not in recipients.columns:
+        return pd.Series(False, index=recipients.index)
+    col = recipients[crit.attribute]
     if crit.operator == "eq":
-        return raw == val
+        return col == crit.value
     if crit.operator == "gte":
-        try:
-            return float(raw) >= float(val)
-        except ValueError:
-            return False
+        return pd.to_numeric(col, errors="coerce") >= float(crit.value)
     if crit.operator == "lte":
-        try:
-            return float(raw) <= float(val)
-        except ValueError:
-            return False
+        return pd.to_numeric(col, errors="coerce") <= float(crit.value)
     if crit.operator == "contains":
-        return val in raw
-    return False  # unknown operator = not eligible
+        return col.str.contains(crit.value, na=False)
+    return pd.Series(False, index=recipients.index)
 
 
 def build_matrix(
@@ -48,12 +38,12 @@ def build_matrix(
     for sid in scholarships.index:
         crit_list = criteria.get(sid, [])
         if not crit_list:
-            # No criteria = universally eligible
             matrix[sid] = True
             continue
-        for rid in recipients.index:
-            row = recipients.loc[rid]
-            matrix.loc[rid, sid] = all(_evaluate_criterion(row, c) for c in crit_list)
+        eligible = pd.Series(True, index=recipients.index)
+        for crit in crit_list:
+            eligible &= _evaluate_criterion_vectorized(recipients, crit)
+        matrix[sid] = eligible
 
     return matrix
 
