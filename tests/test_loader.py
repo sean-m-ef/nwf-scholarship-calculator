@@ -76,3 +76,34 @@ S001,General,4000
     result = validate_balance(recip, schol)
     assert result["balanced"] is False
     assert result["delta"] == pytest.approx(1500.0)
+
+
+def test_full_name_case_preserved():
+    csv = b"recipient_id,full_name,award_amount,major\nR001,Jane Smith,1000,nursing\n"
+    df = load_recipients(csv)
+    assert df.loc["R001", "full_name"] == "Jane Smith"
+    assert df.loc["R001", "major"] == "nursing"  # attribute columns still lowercased
+
+
+def test_negative_award_amount_rejected():
+    csv = b"recipient_id,full_name,award_amount\nR001,Jane,-500\n"
+    with pytest.raises(ValueError, match="positive"):
+        load_recipients(csv)
+
+
+def test_negative_scholarship_amount_rejected():
+    csv = b"scholarship_id,name,amount\nS001,Award,-1000\n"
+    with pytest.raises(ValueError, match="positive"):
+        load_scholarships(csv)
+
+
+def test_duplicate_recipient_id_rejected():
+    csv = b"recipient_id,full_name,award_amount\nR001,Jane,1000\nR001,Jane Dupe,1000\n"
+    with pytest.raises(ValueError, match="Duplicate recipient_id"):
+        load_recipients(csv)
+
+
+def test_duplicate_scholarship_id_rejected():
+    csv = b"scholarship_id,name,amount\nS001,Award,1000\nS001,Award Dupe,1000\n"
+    with pytest.raises(ValueError, match="Duplicate scholarship_id"):
+        load_scholarships(csv)

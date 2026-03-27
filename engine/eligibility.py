@@ -10,14 +10,24 @@ from engine.loader import Criterion
 def _evaluate_criterion_vectorized(recipients: pd.DataFrame, crit: Criterion) -> pd.Series:
     """Return a boolean Series over all recipients for a single criterion."""
     if crit.attribute not in recipients.columns:
-        return pd.Series(False, index=recipients.index)
+        raise ValueError(
+            f"Criterion references attribute '{crit.attribute}' which is not a column in the "
+            f"recipients CSV (column: '{crit.column}'). Check for typos in the scholarship criteria."
+        )
     col = recipients[crit.attribute]
     if crit.operator == "eq":
         return col == crit.value
-    if crit.operator == "gte":
-        return pd.to_numeric(col, errors="coerce") >= float(crit.value)
-    if crit.operator == "lte":
-        return pd.to_numeric(col, errors="coerce") <= float(crit.value)
+    if crit.operator in ("gte", "lte"):
+        numeric = pd.to_numeric(col, errors="coerce")
+        bad = col[numeric.isna()]
+        if not bad.empty:
+            raise ValueError(
+                f"Cannot apply '{crit.operator}' criterion on '{crit.attribute}': "
+                f"non-numeric values found: {bad.unique().tolist()}"
+            )
+        if crit.operator == "gte":
+            return numeric >= float(crit.value)
+        return numeric <= float(crit.value)
     if crit.operator == "contains":
         return col.str.contains(crit.value, na=False)
     return pd.Series(False, index=recipients.index)

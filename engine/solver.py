@@ -132,7 +132,7 @@ def solve(
     for (rid, sid), var in x.items():
         val = pulp.value(var)
         if val is not None and val > 1e-6:
-            rows.append({"recipient_id": rid, "scholarship_id": sid, "amount": round(val, 2)})
+            rows.append({"recipient_id": rid, "scholarship_id": sid, "amount": val})
 
     allocations = pd.DataFrame(rows, columns=["recipient_id", "scholarship_id", "amount"])
 

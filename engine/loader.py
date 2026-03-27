@@ -6,6 +6,7 @@ import io
 import re
 from dataclasses import dataclass, field
 
+import numpy as np
 import pandas as pd
 
 REQUIRED_RECIPIENT_COLS = {"recipient_id", "full_name", "award_amount"}
@@ -39,12 +40,23 @@ def load_recipients(source: str | bytes | io.IOBase) -> pd.DataFrame:
     df["recipient_id"] = df["recipient_id"].astype(str).str.strip()
     df["award_amount"] = pd.to_numeric(df["award_amount"], errors="raise")
 
-    # Normalize boolean-looking columns to lowercase strings for consistent matching
+    invalid = df["award_amount"][~np.isfinite(df["award_amount"]) | (df["award_amount"] <= 0)]
+    if not invalid.empty:
+        raise ValueError(f"award_amount must be positive and finite; bad rows: {list(invalid.index)}")
+
+    # Lowercase attribute columns for consistent criterion matching.
+    # Preserve display columns (full_name) as-is.
+    display_cols = {"recipient_id", "award_amount", "full_name"}
     for col in df.columns:
-        if col not in ("recipient_id", "award_amount"):
+        if col not in display_cols:
             df[col] = df[col].astype(str).str.strip().str.lower()
 
     df = df.set_index("recipient_id")
+
+    if not df.index.is_unique:
+        dupes = list(df.index[df.index.duplicated()])
+        raise ValueError(f"Duplicate recipient_id values: {dupes}")
+
     return df
 
 
@@ -63,7 +75,16 @@ def load_scholarships(source: str | bytes | io.IOBase) -> tuple[pd.DataFrame, di
 
     df["scholarship_id"] = df["scholarship_id"].astype(str).str.strip()
     df["amount"] = pd.to_numeric(df["amount"], errors="raise")
+
+    invalid = df["amount"][~np.isfinite(df["amount"]) | (df["amount"] <= 0)]
+    if not invalid.empty:
+        raise ValueError(f"scholarship amount must be positive and finite; bad rows: {list(invalid.index)}")
+
     df = df.set_index("scholarship_id")
+
+    if not df.index.is_unique:
+        dupes = list(df.index[df.index.duplicated()])
+        raise ValueError(f"Duplicate scholarship_id values: {dupes}")
 
     warnings = []
     crit_cols = [c for c in df.columns if c.startswith("crit__")]

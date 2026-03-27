@@ -54,12 +54,12 @@ def test_first_gen_boolean():
     assert matrix.loc["R003", "S003"] == True
 
 
-def test_unknown_attribute_ineligible():
-    """Criterion referencing an attribute not in recipients CSV -> ineligible."""
+def test_unknown_attribute_raises():
+    """Criterion referencing an attribute not in recipients CSV -> ValueError."""
     recip = load_recipients(b"recipient_id,full_name,award_amount\nR001,Jane,1000\n")
     schol, crit, _ = load_scholarships(b"scholarship_id,name,amount,crit__major__eq__nursing\nS001,Award,1000,true\n")
-    matrix = build_matrix(recip, schol, crit)
-    assert matrix.loc["R001", "S001"] == False
+    with pytest.raises(ValueError, match="major"):
+        build_matrix(recip, schol, crit)
 
 
 def test_summarize_coverage():
@@ -80,3 +80,11 @@ def test_zero_eligibility_detection():
     matrix = build_matrix(recip, schol, crit)
     summary = summarize_coverage(matrix)
     assert "R001" in summary["recipients_with_zero_eligibility"]
+
+
+def test_non_numeric_value_in_numeric_criterion_raises():
+    """Non-numeric value in a gte/lte column raises ValueError instead of silently excluding."""
+    recip = load_recipients(b"recipient_id,full_name,award_amount,gpa\nR001,Jane,1000,N/A\n")
+    schol, crit, _ = load_scholarships(b"scholarship_id,name,amount,crit__gpa__gte__3.5\nS001,Award,1000,true\n")
+    with pytest.raises(ValueError, match="non-numeric"):
+        build_matrix(recip, schol, crit)
