@@ -1,0 +1,19 @@
+[project]
+name = "nwf-scholarship-calculator"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.0",
+    "pulp>=2.7",
+    "openpyxl>=3.1",
+    "marimo>=0.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

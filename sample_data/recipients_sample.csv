@@ -1,0 +1,6 @@
+recipient_id,full_name,award_amount,major,gpa,residency,financial_need_tier,degree_level,first_gen,stem_flag
+R001,Jane Smith,2500,nursing,3.8,clark_county,high,undergraduate,true,false
+R002,Maria Garcia,2000,engineering,3.6,clark_county,medium,undergraduate,false,true
+R003,Aisha Johnson,1500,education,3.2,washoe_county,high,undergraduate,true,false
+R004,Linda Chen,3000,computer_science,3.9,clark_county,low,graduate,false,true
+R005,Priya Patel,1000,nursing,2.9,clark_county,high,undergraduate,true,false

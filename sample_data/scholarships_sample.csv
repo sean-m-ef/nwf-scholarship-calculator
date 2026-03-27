@@ -1,0 +1,5 @@
+scholarship_id,name,amount,crit__major__eq__nursing,crit__stem_flag__eq__true,crit__first_gen__eq__true,crit__gpa__gte__3.5
+S001,Mary Lee Nursing Award,3000,true,false,false,false
+S002,Clark County STEM Award,3500,false,true,false,false
+S003,First Generation Scholarship,2000,false,false,true,false
+S004,General Excellence Award,1500,false,false,false,false
