@@ -1,3 +1,18 @@
+# NWF Scholarship Calculator — Marimo UI
+#
+# Marimo is a reactive notebook: each @app.cell function re-runs automatically
+# whenever its inputs (function arguments) change. Dependencies are declared
+# explicitly via function parameters — if cell B takes `recipients` as a parameter,
+# it re-runs whenever cell A (which returns `recipients`) re-runs.
+#
+# mo.stop(condition) halts the current cell and all downstream cells when the
+# condition is True. Used here as a guard pattern: cells that depend on uploaded
+# files stop gracefully if no file has been uploaded yet, rather than crashing
+# on a None value.
+#
+# Run for end users (no cell editing):  marimo run app.py
+# Run for development (editable):       marimo edit app.py
+
 import marimo
 
 __generated_with = "0.21.1"

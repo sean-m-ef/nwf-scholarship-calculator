@@ -1,4 +1,9 @@
-"""Boolean eligibility matrix: recipients × scholarships."""
+"""Boolean eligibility matrix: recipients × scholarships.
+
+Design note: all criteria for a scholarship are AND'd together — a recipient must satisfy
+every active criterion to be eligible. OR logic is not supported in MVP. If a scholarship
+has no active criteria, it is universally eligible (open to all recipients).
+"""
 
 from __future__ import annotations
 
@@ -8,7 +13,13 @@ from engine.loader import Criterion
 
 
 def _evaluate_criterion_vectorized(recipients: pd.DataFrame, crit: Criterion) -> pd.Series:
-    """Return a boolean Series over all recipients for a single criterion."""
+    """Evaluate a single criterion against all recipients at once.
+
+    Returns a boolean Series (index=recipient_id) where True means the recipient
+    satisfies this criterion. Operates on the entire column at once rather than
+    looping per recipient — each pandas operation here runs across all ~200 rows
+    simultaneously in C, not Python.
+    """
     if crit.attribute not in recipients.columns:
         raise ValueError(
             f"Criterion references attribute '{crit.attribute}' which is not a column in the "
@@ -50,6 +61,12 @@ def build_matrix(
         if not crit_list:
             matrix[sid] = True
             continue
+
+        # AND-accumulator pattern: start with everyone eligible (all True),
+        # then narrow the set by ANDing in each criterion's boolean mask.
+        # After all criteria, eligible[rid] is True only if the recipient
+        # passed every criterion. The &= operator is element-wise boolean AND
+        # across the full Series — not a scalar operation.
         eligible = pd.Series(True, index=recipients.index)
         for crit in crit_list:
             eligible &= _evaluate_criterion_vectorized(recipients, crit)

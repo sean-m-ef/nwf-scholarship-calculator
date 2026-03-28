@@ -139,6 +139,10 @@ def load_all(recipients_source, scholarships_source) -> LoadResult:
 
 
 def _read_csv(source: str | bytes | io.IOBase) -> pd.DataFrame:
+    # dtype=str loads all columns as strings, bypassing pandas type inference.
+    # This prevents silent coercions (e.g. "3.0" -> 3, "TRUE" -> True) that would
+    # cause mismatches against the string values in criterion definitions.
+    # Numeric columns (award_amount, amount) are explicitly coerced after load.
     if isinstance(source, bytes):
         source = io.BytesIO(source)
     return pd.read_csv(source, dtype=str)
