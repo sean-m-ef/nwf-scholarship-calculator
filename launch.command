@@ -1,17 +1,34 @@
 #!/bin/bash
 # NWF Scholarship Calculator — Mac launcher
 # Double-click this file in Finder to start the app.
-# The browser will open automatically.
+# Installs uv and dependencies automatically on first run.
 
-# cd to the directory containing this script, regardless of where it's launched from
 cd "$(dirname "$0")"
 
-# Check for uv
+# --- Ensure uv is available ---
 if ! command -v uv &> /dev/null; then
-    osascript -e 'display alert "uv not found" message "Please install uv first:\n\nbrew install uv\n\nOr visit: https://docs.astral.sh/uv/getting-started/installation/" as critical'
+    # Add uv's default user install location in case it's installed but not on PATH
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+if ! command -v uv &> /dev/null; then
+    echo "uv not found. Installing now..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    if [ $? -ne 0 ]; then
+        osascript -e 'display alert "Installation failed" message "Could not install uv automatically.\n\nPlease visit https://docs.astral.sh/uv/getting-started/installation/ and install manually, then try again." as critical'
+        exit 1
+    fi
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
+# --- Sync dependencies (fast no-op if already current) ---
+uv sync --quiet
+if [ $? -ne 0 ]; then
+    echo "ERROR: Dependency sync failed. Check your internet connection and try again."
+    read -p "Press Enter to close..."
     exit 1
 fi
 
-# uv run handles venv creation and dependency install automatically on first run
+# --- Launch app ---
 echo "Starting NWF Scholarship Calculator..."
 uv run marimo run app.py
