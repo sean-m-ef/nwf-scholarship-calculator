@@ -27,11 +27,18 @@ def _imports():
 
 @app.cell
 def _header(mo):
-    mo.md("""
-    # Nevada Women's Fund — Scholarship Distribution Engine
+    from pathlib import Path
+    logo_path = Path(__file__).parent / "nwf_logo.png"
+    logo = mo.image(src=str(logo_path), width=200) if logo_path.exists() else None
 
-    Upload the recipients and scholarships CSV files, set the minimum split threshold, then click **Run Solver**.
-    """)
+    mo.vstack([
+        logo or mo.md(""),
+        mo.md("""
+## Scholarship Distribution Engine
+
+Upload the recipients and scholarships CSV files, set the minimum split threshold, then click **Run Solver**.
+        """),
+    ])
     return
 
 
