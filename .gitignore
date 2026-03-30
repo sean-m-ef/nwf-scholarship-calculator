@@ -208,3 +208,4 @@ __marimo__/
 
 # Client data — not for version control
 test_data/
+.DS_Store
