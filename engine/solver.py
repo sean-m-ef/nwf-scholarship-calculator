@@ -34,9 +34,9 @@ def solve(
       Constraints:  sum_j x[i,j] == award_amount[i]   (recipient fully funded, equality)
                     sum_i x[i,j] <= amount[j]          (scholarship not over-allocated, inequality)
       Objective:    minimize sum_{i,j} w[j] * x[i,j]
-                    where w[j] = 1 / eligible_recipient_count[j]
-                    This biases the solver toward filling specialist scholarships first
-                    and using general-pool scholarships as fill-in.
+                    where w[j] = eligible_recipient_count[j]
+                    General scholarships (high count = high weight) are avoided by the
+                    minimizer, leaving them as fill-in for specialist scholarships.
 
     Recipient constraints use equality (must be fully funded) rather than inequality.
     Scholarship constraints use inequality (may be underspent) because the pre-balance
@@ -80,16 +80,15 @@ def solve(
     # --- Build LP ---
     prob = pulp.LpProblem("scholarship_assignment", pulp.LpMinimize)
 
-    # Weight each scholarship by 1 / (number of eligible recipients).
-    # Scholarships with fewer eligible recipients get higher weights, so the solver
-    # assigns to them first — leaving general-pool scholarships as fill-in for the
-    # remainder. This is a soft preference encoded in a linear objective; it does not
-    # guarantee any particular assignment order, but reliably produces better
+    # Weight each scholarship by its eligible recipient count.
+    # General scholarships (many eligible) get high weight → the minimization objective
+    # avoids them, leaving them as fill-in. Tight scholarships (few eligible) get low
+    # weight → the solver prefers assigning to them first. This reliably produces better
     # criteria alignment than an unweighted formulation.
-    # replace(0, 1) prevents div/0 for scholarships with no eligible recipients
-    # (they'll get weight 1.0 and zero allocations from the feasibility constraints).
+    # replace(0, 1) keeps weight finite for scholarships with no eligible recipients
+    # (they'll receive zero allocation from the feasibility constraints regardless).
     eligible_counts = eligibility.loc[solvable].sum(axis=0).replace(0, 1)
-    weights = {sid: 1.0 / float(eligible_counts[sid]) for sid in scholarships.index}
+    weights = {sid: float(eligible_counts[sid]) for sid in scholarships.index}
 
     # Decision variables: x[rid, sid] = dollars from scholarship sid to recipient rid
     # Only create variables for eligible pairs
